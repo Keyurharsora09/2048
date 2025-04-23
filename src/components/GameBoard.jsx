@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-// import "../App.css";
 const SIZE = 4;
 
 const createEmptyBoard = () => {
@@ -26,7 +24,6 @@ const addRandomTile = (board) => {
 
 const slide = (row) => {
   const newRow = row.filter((num) => num !== 0);
-  // console.log(`newRow: ${newRow}`);
   while (newRow.length < SIZE) {
     newRow.push(0);
   }
