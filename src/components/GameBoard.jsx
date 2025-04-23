@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+// import "../App.css";
 const SIZE = 4;
 
 const createEmptyBoard = () => {
@@ -24,6 +26,7 @@ const addRandomTile = (board) => {
 
 const slide = (row) => {
   const newRow = row.filter((num) => num !== 0);
+  // console.log(`newRow: ${newRow}`);
   while (newRow.length < SIZE) {
     newRow.push(0);
   }
@@ -62,6 +65,9 @@ const GameBoard = () => {
     addRandomTile(addRandomTile(createEmptyBoard()))
   );
   const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(
+    parseInt(localStorage.getItem("highScore")) || 0
+  );
 
   const resetGame = () => {
     const newBoard = addRandomTile(addRandomTile(createEmptyBoard()));
@@ -74,47 +80,6 @@ const GameBoard = () => {
     let newBoard = [];
     let tempScore = 0;
 
-    const isGameOver = () => {
-      const testBoard = cloneBoard(board);
-      const directions = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
-      for (const direction of directions) {
-        const clone = JSON.parse(JSON.stringify(testBoard));
-        let moved = false;
-        
-        switch (direction) {
-          case "ArrowLeft":
-            moved = JSON.stringify(clone.map((row) => operate(row)) !== JSON.stringify(clone));
-            break;
-
-          case "ArrowRight":
-            moved = JSON.stringify(clone.map((row) => operate([...row].reverse()).reverse()) !== JSON.stringify(clone));
-            break;
-          case "ArrowUp":
-            let t1 = transpose(clone);
-            let t2 = t1.map((row) => operate(row));
-            moved = JSON.stringify(t2) !== JSON.stringify(clone);
-            break;
-            case "ArrowDown": 
-            let t3 = transpose(clone);
-            let t4 = t3.map((row) => operate([...row].reverse()).reverse());
-            moved = JSON.stringify(t4) !== JSON.stringify(clone);
-            break;
-
-            default:
-            return;
-        }
-        if (moved) {
-          return false;
-        }
-      }
-      return true;
-    }
-    if (isGameOver()) {
-      alert("Game Over! Your score: " + score);
-      resetGame();
-      return;
-    }
-    
     switch (event.key) {
       case "ArrowLeft":
         newBoard = board.map((row) => {
@@ -134,7 +99,6 @@ const GameBoard = () => {
 
       case "ArrowUp":
         newBoard = transpose(board);
-        console.log('transpose :>> ', newBoard);
         newBoard = newBoard.map((row) => {
           const { row: newRow, score } = operate(row);
           tempScore += score;
@@ -158,18 +122,43 @@ const GameBoard = () => {
     }
     if (JSON.stringify(oldBoard) !== JSON.stringify(newBoard)) {
       setBoard(addRandomTile(newBoard));
-      setScore((prevScore) => prevScore + tempScore);
+      setScore((prevScore) => {
+        const newScore = prevScore + tempScore;
+        if (newScore > highScore) {
+          setHighScore(newScore);
+          localStorage.setItem("highScore", newScore);
+        }
+        return newScore;
+      });
     }
   };
-console.log(`board: ${board}`);
+
+  const checkGameOver = () => {
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE; j++) {
+        if (board[i][j] === 0) return false;
+        if (i < SIZE - 1 && board[i][j] === board[i + 1][j]) return false;
+        if (j < SIZE - 1 && board[i][j] === board[i][j + 1]) return false;
+      }
+    }
+    return true;
+  };
+
   useEffect(() => {
+    if (checkGameOver()) {
+      alert("Game Over! Your score: " + score);
+    }
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [board]);
 
   return (
-    <>
-      <div className="score">Score: {score}</div>
+    <div className="game-board">
+      <div className="header">
+        <div className="score">Score: {score}</div>
+        <div>High Score: {highScore} </div>
+      </div>
       <div className="grid">
         {board.map((row, i) =>
           row.map((cell, j) => (
@@ -182,7 +171,7 @@ console.log(`board: ${board}`);
       <button className="reset-button" onClick={resetGame}>
         Reset Game
       </button>
-    </>
+    </div>
   );
 };
 
